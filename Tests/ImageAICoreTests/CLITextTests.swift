@@ -12,11 +12,15 @@ final class CLITextTests: XCTestCase {
   func testHelpDocumentsEveryOptionAndPrivacyDefault() {
     XCTAssertTrue(CLIText.usage.contains("--use-cloud"))
     XCTAssertTrue(CLIText.usage.contains("--allow-cloud"))
+    XCTAssertTrue(CLIText.usage.contains("--prompt <text>"))
     XCTAssertTrue(CLIText.usage.contains("--filename"))
     XCTAssertTrue(CLIText.usage.contains("-h, --help"))
     XCTAssertTrue(CLIText.usage.contains("--version"))
     XCTAssertTrue(CLIText.usage.contains("on-device by default"))
     XCTAssertTrue(CLIText.usage.contains("does not rename the source file"))
+    XCTAssertTrue(
+      CLIText.usage.contains("\(CLIParser.maximumPromptLength) characters")
+    )
   }
 
   func testHelpDocumentsEverySupportedFormat() {

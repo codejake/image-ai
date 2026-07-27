@@ -75,6 +75,87 @@ final class CLIParserTests: XCTestCase {
     )
   }
 
+  func testParsesAdditionalPromptInBothForms() throws {
+    let expected = CLICommand.describe(
+      DescribeOptions(
+        imagePath: "building.jpg",
+        additionalPrompt: "Focus on the architecture"
+      )
+    )
+
+    XCTAssertEqual(
+      try CLIParser.parse([
+        "--prompt", "Focus on the architecture", "building.jpg",
+      ]),
+      expected
+    )
+    XCTAssertEqual(
+      try CLIParser.parse([
+        "--prompt=Focus on the architecture", "building.jpg",
+      ]),
+      expected
+    )
+  }
+
+  func testTrimsAdditionalPrompt() throws {
+    XCTAssertEqual(
+      try CLIParser.parse([
+        "--prompt", "  Focus on the architecture  ", "building.jpg",
+      ]),
+      .describe(
+        DescribeOptions(
+          imagePath: "building.jpg",
+          additionalPrompt: "Focus on the architecture"
+        )
+      )
+    )
+  }
+
+  func testRejectsMissingPromptValue() {
+    for arguments in [
+      ["photo.jpg", "--prompt"],
+      ["--prompt", "--filename", "photo.jpg"],
+    ] {
+      XCTAssertThrowsError(try CLIParser.parse(arguments)) { error in
+        XCTAssertEqual(error as? CLIParseError, .missingPromptValue)
+      }
+    }
+  }
+
+  func testRejectsEmptyPrompt() {
+    for arguments in [
+      ["--prompt=", "photo.jpg"],
+      ["--prompt", "   ", "photo.jpg"],
+    ] {
+      XCTAssertThrowsError(try CLIParser.parse(arguments)) { error in
+        XCTAssertEqual(error as? CLIParseError, .emptyPrompt)
+      }
+    }
+  }
+
+  func testRejectsRepeatedPrompt() {
+    XCTAssertThrowsError(
+      try CLIParser.parse([
+        "--prompt", "First", "--prompt=Second", "photo.jpg",
+      ])
+    ) { error in
+      XCTAssertEqual(error as? CLIParseError, .duplicatePrompt)
+    }
+  }
+
+  func testRejectsOversizedPrompt() {
+    let prompt = String(repeating: "a", count: CLIParser.maximumPromptLength + 1)
+
+    XCTAssertThrowsError(
+      try CLIParser.parse(["--prompt", prompt, "photo.jpg"])
+    ) { error in
+      XCTAssertEqual(
+        error as? CLIParseError,
+        .promptTooLong(maximum: CLIParser.maximumPromptLength)
+      )
+    }
+  }
+
   func testHelpAndVersion() throws {
     XCTAssertEqual(try CLIParser.parse(["--help"]), .help)
     XCTAssertEqual(try CLIParser.parse(["-h"]), .help)

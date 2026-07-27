@@ -53,7 +53,8 @@ struct ImageAIMain {
     let result = try await ImageDescriber().describe(
       loadedImage,
       useCloud: options.useCloud,
-      allowCloud: options.allowCloud
+      allowCloud: options.allowCloud,
+      additionalPrompt: options.additionalPrompt
     )
 
     if result.source == .privateCloudCompute {

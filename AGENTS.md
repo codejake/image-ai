@@ -78,6 +78,9 @@ Preserve these unless the user explicitly changes the specification:
     evaluation demonstrates a better quality/latency tradeoff.
 12. `--filename` changes only output formatting. It never renames the source
     image and retains the source extension in lowercase.
+13. `--prompt` provides additive guidance only. It must not override accuracy,
+    safety, privacy, or output-format invariants, and it is limited to 1,000
+    characters.
 
 ## Privacy and cloud policy
 
@@ -96,7 +99,7 @@ If both options are supplied, `--use-cloud` takes precedence.
 
 Never use PCC to bypass a safety refusal. When PCC is actually used, disclose it
 on standard error while keeping the generated description alone on standard
-output.
+output. Any additional prompt is sent to PCC along with the image.
 
 Do not send test images to PCC merely to validate a code change. A live PCC test
 can transmit image data and consume quota; obtain clear user authorization when

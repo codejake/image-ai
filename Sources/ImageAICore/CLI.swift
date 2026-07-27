@@ -5,17 +5,20 @@ public struct DescribeOptions: Equatable, Sendable {
   public let useCloud: Bool
   public let allowCloud: Bool
   public let filenameOutput: Bool
+  public let additionalPrompt: String?
 
   public init(
     imagePath: String,
     useCloud: Bool = false,
     allowCloud: Bool = false,
-    filenameOutput: Bool = false
+    filenameOutput: Bool = false,
+    additionalPrompt: String? = nil
   ) {
     self.imagePath = imagePath
     self.useCloud = useCloud
     self.allowCloud = allowCloud
     self.filenameOutput = filenameOutput
+    self.additionalPrompt = additionalPrompt
   }
 }
 
@@ -28,6 +31,10 @@ public enum CLICommand: Equatable, Sendable {
 public enum CLIParseError: Error, Equatable, LocalizedError {
   case missingImagePath
   case multipleImagePaths
+  case missingPromptValue
+  case emptyPrompt
+  case duplicatePrompt
+  case promptTooLong(maximum: Int)
   case unknownOption(String)
 
   public var errorDescription: String? {
@@ -36,6 +43,14 @@ public enum CLIParseError: Error, Equatable, LocalizedError {
       "missing image path"
     case .multipleImagePaths:
       "expected exactly one image path"
+    case .missingPromptValue:
+      "missing value for '--prompt'"
+    case .emptyPrompt:
+      "'--prompt' must not be empty"
+    case .duplicatePrompt:
+      "'--prompt' may only be specified once"
+    case .promptTooLong(let maximum):
+      "'--prompt' must be \(maximum) characters or fewer"
     case .unknownOption(let option):
       "unknown option '\(option)'"
     }
@@ -43,6 +58,8 @@ public enum CLIParseError: Error, Equatable, LocalizedError {
 }
 
 public enum CLIParser {
+  public static let maximumPromptLength = 1_000
+
   public static func parse(_ arguments: [String]) throws -> CLICommand {
     if arguments.contains("-h") || arguments.contains("--help") {
       return .help
@@ -55,10 +72,14 @@ public enum CLIParser {
     var useCloud = false
     var allowCloud = false
     var filenameOutput = false
+    var additionalPrompt: String?
     var paths: [String] = []
     var parsesOptions = true
+    var index = 0
 
-    for argument in arguments {
+    while index < arguments.count {
+      let argument = arguments[index]
+
       if parsesOptions && argument == "--" {
         parsesOptions = false
       } else if parsesOptions && argument == "--use-cloud" {
@@ -67,11 +88,32 @@ public enum CLIParser {
         allowCloud = true
       } else if parsesOptions && argument == "--filename" {
         filenameOutput = true
+      } else if parsesOptions && argument == "--prompt" {
+        guard additionalPrompt == nil else {
+          throw CLIParseError.duplicatePrompt
+        }
+
+        index += 1
+        guard index < arguments.count,
+          !arguments[index].hasPrefix("-")
+        else {
+          throw CLIParseError.missingPromptValue
+        }
+        additionalPrompt = try validatePrompt(arguments[index])
+      } else if parsesOptions && argument.hasPrefix("--prompt=") {
+        guard additionalPrompt == nil else {
+          throw CLIParseError.duplicatePrompt
+        }
+        additionalPrompt = try validatePrompt(
+          String(argument.dropFirst("--prompt=".count))
+        )
       } else if parsesOptions && argument.hasPrefix("-") {
         throw CLIParseError.unknownOption(argument)
       } else {
         paths.append(argument)
       }
+
+      index += 1
     }
 
     guard !paths.isEmpty else {
@@ -86,14 +128,26 @@ public enum CLIParser {
         imagePath: paths[0],
         useCloud: useCloud,
         allowCloud: allowCloud,
-        filenameOutput: filenameOutput
+        filenameOutput: filenameOutput,
+        additionalPrompt: additionalPrompt
       )
     )
+  }
+
+  private static func validatePrompt(_ value: String) throws -> String {
+    let prompt = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !prompt.isEmpty else {
+      throw CLIParseError.emptyPrompt
+    }
+    guard prompt.count <= maximumPromptLength else {
+      throw CLIParseError.promptTooLong(maximum: maximumPromptLength)
+    }
+    return prompt
   }
 }
 
 public enum CLIText {
-  public static let version = "0.5.5"
+  public static let version = "0.6.0"
 
   public static var usage: String {
     """
@@ -127,6 +181,11 @@ public enum CLIText {
           fallback if local processing is unavailable or encounters an
           infrastructure failure. Safety refusals are not retried in the cloud.
 
+      --prompt <text>
+          Add guidance about what the description should emphasize. Core
+          accuracy, safety, and output rules still apply. The prompt may contain
+          at most \(CLIParser.maximumPromptLength) characters and may be specified once.
+
       -h, --help
           Print this help and exit.
 
@@ -136,13 +195,15 @@ public enum CLIText {
     EXAMPLES
       image-ai "Photos/family picnic.jpg"
       image-ai --filename screenshot.WEBP
+      image-ai --prompt "Focus on the architecture" building.jpg
       image-ai --use-cloud photo.heic
       image-ai --allow-cloud photo.png
 
     PRIVACY
       Processing is on-device by default. No cloud request is permitted unless
       --use-cloud or --allow-cloud is specified. If both are specified,
-      --use-cloud takes precedence.
+      --use-cloud takes precedence. An additional prompt is sent with the image
+      whenever Private Cloud Compute is used.
     """
   }
 }
