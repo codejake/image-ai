@@ -162,6 +162,47 @@ people-playing-soccer-in-a-park.webp
 
 This prints a suggestion only. It does not rename or move the image.
 
+#### Analyze and rename a directory of images
+
+This zsh example analyzes every supported image directly inside
+`~/Screenshots`, then renames it using the generated filename:
+
+```zsh
+screenshot_dir="$HOME/Screenshots"
+
+for image in "$screenshot_dir"/*(N); do
+  [[ -f "$image" ]] || continue
+
+  extension="${image##*.}"
+  extension="${extension:l}"
+  case "$extension" in
+    jpg|jpeg|png|heic|webp) ;;
+    *) continue ;;
+  esac
+
+  if ! new_name="$(image-ai --filename "$image")"; then
+    print -u2 "Skipping: $image"
+    continue
+  fi
+
+  destination="$screenshot_dir/$new_name"
+  if [[ "$image" == "$destination" ]]; then
+    continue
+  fi
+  if [[ -e "$destination" ]]; then
+    print -u2 "Skipping existing destination: $destination"
+    continue
+  fi
+
+  mv "$image" "$destination"
+  print "Renamed: $image -> $destination"
+done
+```
+
+The collision check prevents an existing file from being overwritten. The
+example runs on-device unless you explicitly add `--use-cloud` or
+`--allow-cloud` to the `image-ai` command.
+
 ### Choose where the model runs
 
 Without either cloud option, `image-ai` is strictly on-device.
