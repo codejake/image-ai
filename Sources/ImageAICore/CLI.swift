@@ -88,20 +88,49 @@ public enum CLIParser {
 public enum CLIText {
   public static let version = "0.5.0"
 
-  public static let usage = """
-    Usage: image-ai [--allow-cloud] [--filename] <image-path>
-           image-ai --help
-           image-ai --version
-
-    Describe one JPEG, PNG, HEIC, or WebP image using Apple Foundation Models.
-    For animated WebP images, only the first frame is described.
-
-    Options:
-      --allow-cloud  Allow Private Cloud Compute only if the on-device model
-                     is unavailable or encounters an infrastructure failure.
-      --filename     Print a lowercase, hyphenated filename suggestion with the
-                     original file extension.
-      -h, --help     Show this help.
-      --version      Show the program version.
+  public static var usage: String {
     """
+    image-ai \(version)
+    Describe an image with Apple Foundation Models.
+
+    USAGE
+      image-ai [options] <image-path>
+      image-ai --help
+      image-ai --version
+
+    ARGUMENT
+      <image-path>
+          One readable local JPEG, PNG, HEIC, or WebP image. Relative paths are
+          resolved from the current directory. For animated WebP files, only the
+          first frame is described.
+
+    OPTIONS
+      --filename
+          Print a filename suggestion instead of a sentence. The description is
+          lowercased, punctuation is removed, words are joined with hyphens, and
+          the source extension is retained. This does not rename the source file.
+
+      --allow-cloud
+          Explicitly permit Private Cloud Compute if the on-device model is
+          unavailable or encounters an infrastructure failure. The image may
+          leave the Mac when this option is used. PCC requires network access,
+          eligibility, entitlement, and available quota. Safety refusals are
+          never retried in the cloud.
+
+      -h, --help
+          Print this help and exit.
+
+      --version
+          Print the program version and exit.
+
+    EXAMPLES
+      image-ai "Photos/family picnic.jpg"
+      image-ai --filename screenshot.WEBP
+      image-ai --allow-cloud photo.heic
+
+    PRIVACY
+      Processing is on-device by default. No cloud request is permitted unless
+      --allow-cloud is specified.
+    """
+  }
 }
