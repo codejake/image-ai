@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:image-ai}",
+            "name": "Debug image-ai",
+            "target": "image-ai",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug image-ai"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:image-ai}",
+            "name": "Release image-ai",
+            "target": "image-ai",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release image-ai"
+        }
+    ]
+}
