@@ -1,5 +1,7 @@
 # image-ai
 
+![image-ai](assets/image-ai.png)
+
 `image-ai` is a fast macOS command-line utility that describes an image in one
 short, plain-language sentence.
 
