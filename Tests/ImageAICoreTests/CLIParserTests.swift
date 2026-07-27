@@ -6,11 +6,26 @@ final class CLIParserTests: XCTestCase {
   func testParsesSinglePath() throws {
     XCTAssertEqual(
       try CLIParser.parse(["photo.jpg"]),
-      .describe(DescribeOptions(imagePath: "photo.jpg", allowCloud: false))
+      .describe(DescribeOptions(imagePath: "photo.jpg", useCloud: false))
     )
   }
 
-  func testParsesCloudOptInBeforeOrAfterPath() throws {
+  func testParsesCloudSelectionBeforeOrAfterPath() throws {
+    let expected = CLICommand.describe(
+      DescribeOptions(imagePath: "photo.jpg", useCloud: true)
+    )
+
+    XCTAssertEqual(
+      try CLIParser.parse(["--use-cloud", "photo.jpg"]),
+      expected
+    )
+    XCTAssertEqual(
+      try CLIParser.parse(["photo.jpg", "--use-cloud"]),
+      expected
+    )
+  }
+
+  func testParsesCloudFallbackBeforeOrAfterPath() throws {
     let expected = CLICommand.describe(
       DescribeOptions(imagePath: "photo.jpg", allowCloud: true)
     )
@@ -25,10 +40,25 @@ final class CLIParserTests: XCTestCase {
     )
   }
 
+  func testUseCloudTakesPrecedenceWhenBothOptionsArePresent() throws {
+    XCTAssertEqual(
+      try CLIParser.parse([
+        "--allow-cloud", "--use-cloud", "photo.jpg",
+      ]),
+      .describe(
+        DescribeOptions(
+          imagePath: "photo.jpg",
+          useCloud: true,
+          allowCloud: true
+        )
+      )
+    )
+  }
+
   func testDoubleDashAllowsPathBeginningWithDash() throws {
     XCTAssertEqual(
       try CLIParser.parse(["--", "-photo.jpg"]),
-      .describe(DescribeOptions(imagePath: "-photo.jpg", allowCloud: false))
+      .describe(DescribeOptions(imagePath: "-photo.jpg", useCloud: false))
     )
   }
 
@@ -38,7 +68,7 @@ final class CLIParserTests: XCTestCase {
       .describe(
         DescribeOptions(
           imagePath: "photo.WEBP",
-          allowCloud: false,
+          useCloud: false,
           filenameOutput: true
         )
       )

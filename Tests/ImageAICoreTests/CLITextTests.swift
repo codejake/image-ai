@@ -10,6 +10,7 @@ final class CLITextTests: XCTestCase {
   }
 
   func testHelpDocumentsEveryOptionAndPrivacyDefault() {
+    XCTAssertTrue(CLIText.usage.contains("--use-cloud"))
     XCTAssertTrue(CLIText.usage.contains("--allow-cloud"))
     XCTAssertTrue(CLIText.usage.contains("--filename"))
     XCTAssertTrue(CLIText.usage.contains("-h, --help"))

@@ -5,7 +5,7 @@
 `image-ai` is a native Swift command-line utility for macOS 27 that returns a
 short, conservative description of one local image. It uses Apple's on-device
 Foundation Model by default. Private Cloud Compute (PCC) is permitted only when
-the user explicitly supplies `--allow-cloud`.
+the user explicitly supplies `--use-cloud` or `--allow-cloud`.
 
 Read `README.md` before making product or behavior changes. Keep the README in
 sync with user-visible behavior.
@@ -46,8 +46,8 @@ verify with a normal Terminal invocation when appropriate.
 - `Sources/ImageAICore/OutputValidator.swift`: model-output invariants.
 - `Sources/ImageAICore/FilenameOutput.swift`: safe filename-suggestion
   formatting.
-- `Sources/ImageAI/ImageDescriber.swift`: Foundation Models prompting, local
-  model selection, and PCC fallback policy.
+- `Sources/ImageAI/ImageDescriber.swift`: Foundation Models prompting, direct
+  cloud selection, and PCC fallback policy.
 - `Sources/ImageAI/ImageAIMain.swift`: process entry point, standard streams, and
   exit codes.
 - `Tests/ImageAICoreTests/`: deterministic unit tests.
@@ -84,12 +84,15 @@ Preserve these unless the user explicitly changes the specification:
 The default mode is strictly on-device. Never add silent network access or cloud
 fallback.
 
-PCC may be used only when all of the following are true:
+`--use-cloud` selects PCC directly and does not attempt the on-device model.
+`--allow-cloud` keeps local-first behavior and may use PCC only when all of the
+following are true:
 
-- The user supplied `--allow-cloud`.
 - The local model is unavailable or encounters an infrastructure-type failure.
 - The failure is not a refusal, guardrail violation, invalid prompt content, or
   invalid model output.
+
+If both options are supplied, `--use-cloud` takes precedence.
 
 Never use PCC to bypass a safety refusal. When PCC is actually used, disclose it
 on standard error while keeping the generated description alone on standard

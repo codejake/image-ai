@@ -23,7 +23,8 @@ Apple Intelligence is ready, and has no third-party dependencies.
 - Produces concise, conservative descriptions suitable for shell scripts.
 - Can print a lowercase, hyphenated filename suggestion.
 - Uses on-device processing by default.
-- Offers an explicitly enabled Private Cloud Compute fallback where eligible.
+- Can explicitly use Private Cloud Compute or permit it as a fallback where
+  eligible.
 - Never modifies the source image.
 
 ## System requirements
@@ -101,7 +102,7 @@ image-ai --version
 ## Usage
 
 ```text
-image-ai [--allow-cloud] [--filename] <image-path>
+image-ai [--use-cloud] [--allow-cloud] [--filename] <image-path>
 image-ai --help
 image-ai --version
 ```
@@ -143,18 +144,28 @@ people-playing-soccer-in-a-park.webp
 
 This prints a suggestion only. It does not rename or move the image.
 
-### Permit cloud fallback
+### Choose where the model runs
 
-Without an option, `image-ai` is on-device only. Add `--allow-cloud` to permit
-Apple Private Cloud Compute when the on-device model is unavailable or
-experiences an infrastructure failure:
+Without either cloud option, `image-ai` is strictly on-device.
+
+Use `--use-cloud` to send the image directly to Apple's Private Cloud Compute
+model without trying the on-device model:
+
+```bash
+image-ai --use-cloud photo.jpg
+```
+
+Use `--allow-cloud` to prefer the on-device model while permitting Private
+Cloud Compute as a fallback when the local model is unavailable or experiences
+an infrastructure failure:
 
 ```bash
 image-ai --allow-cloud photo.jpg
 ```
 
-The program reports on standard error whenever PCC is actually used. It never
-uses PCC to retry a safety refusal or guardrail violation.
+If both options are supplied, `--use-cloud` takes precedence. The program
+reports on standard error whenever PCC is actually used. The fallback mode
+never uses PCC to retry a safety refusal or guardrail violation.
 
 PCC requires:
 
@@ -163,7 +174,7 @@ PCC requires:
 - Apple's managed `com.apple.developer.private-cloud-compute` entitlement.
 - Available daily request quota.
 
-The option grants permission but does not guarantee PCC availability. A locally
+The options grant permission but do not guarantee PCC availability. A locally
 built executable without Apple's managed entitlement will normally report that
 PCC is unavailable. See Apple's
 [Private Cloud Compute development documentation](https://developer.apple.com/documentation/foundationmodels/adding-server-side-intelligence-with-private-cloud-compute).
@@ -171,7 +182,7 @@ PCC is unavailable. See Apple's
 Options can be combined:
 
 ```bash
-image-ai --allow-cloud --filename photo.heic
+image-ai --use-cloud --filename photo.heic
 ```
 
 ## Supported images
@@ -199,8 +210,9 @@ Default behavior is local:
 - It does not log images, prompts, or descriptions.
 - Temporary decoded image data exists only for the current process.
 
-When `--allow-cloud` is supplied and PCC is used, the image and prompt are
-processed by Apple's Private Cloud Compute service. Consult Apple's
+With `--use-cloud`, the image and prompt are sent directly to Apple's Private
+Cloud Compute service. With `--allow-cloud`, that happens only if the on-device
+attempt qualifies for fallback. Consult Apple's
 [PCC security guide](https://security.apple.com/private-cloud-compute/) for
 details about that service.
 
@@ -235,9 +247,10 @@ newer chip and that device and Siri languages match.
 
 ### `image-ai: Private Cloud Compute unavailable`
 
-`--allow-cloud` does not provide PCC eligibility. The executable needs Apple's
-managed entitlement, a supported region, network access, and available quota.
-The program still works locally without PCC when the on-device model is ready.
+Neither `--use-cloud` nor `--allow-cloud` provides PCC eligibility. The
+executable needs Apple's managed entitlement, a supported region, network
+access, and available quota. The program still works locally without PCC when
+the on-device model is ready.
 
 ### `image-ai: unsupported image format`
 

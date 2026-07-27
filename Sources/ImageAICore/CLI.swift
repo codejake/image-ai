@@ -2,15 +2,18 @@ import Foundation
 
 public struct DescribeOptions: Equatable, Sendable {
   public let imagePath: String
+  public let useCloud: Bool
   public let allowCloud: Bool
   public let filenameOutput: Bool
 
   public init(
     imagePath: String,
-    allowCloud: Bool,
+    useCloud: Bool = false,
+    allowCloud: Bool = false,
     filenameOutput: Bool = false
   ) {
     self.imagePath = imagePath
+    self.useCloud = useCloud
     self.allowCloud = allowCloud
     self.filenameOutput = filenameOutput
   }
@@ -49,6 +52,7 @@ public enum CLIParser {
       return .version
     }
 
+    var useCloud = false
     var allowCloud = false
     var filenameOutput = false
     var paths: [String] = []
@@ -57,6 +61,8 @@ public enum CLIParser {
     for argument in arguments {
       if parsesOptions && argument == "--" {
         parsesOptions = false
+      } else if parsesOptions && argument == "--use-cloud" {
+        useCloud = true
       } else if parsesOptions && argument == "--allow-cloud" {
         allowCloud = true
       } else if parsesOptions && argument == "--filename" {
@@ -78,6 +84,7 @@ public enum CLIParser {
     return .describe(
       DescribeOptions(
         imagePath: paths[0],
+        useCloud: useCloud,
         allowCloud: allowCloud,
         filenameOutput: filenameOutput
       )
@@ -86,7 +93,7 @@ public enum CLIParser {
 }
 
 public enum CLIText {
-  public static let version = "0.5.0"
+  public static let version = "0.5.5"
 
   public static var usage: String {
     """
@@ -110,12 +117,15 @@ public enum CLIText {
           lowercased, punctuation is removed, words are joined with hyphens, and
           the source extension is retained. This does not rename the source file.
 
+      --use-cloud
+          Use Apple's Private Cloud Compute model instead of the on-device
+          model. The image leaves the Mac when this option is used. PCC requires
+          network access, eligibility, entitlement, and available quota.
+
       --allow-cloud
-          Explicitly permit Private Cloud Compute if the on-device model is
-          unavailable or encounters an infrastructure failure. The image may
-          leave the Mac when this option is used. PCC requires network access,
-          eligibility, entitlement, and available quota. Safety refusals are
-          never retried in the cloud.
+          Prefer the on-device model, but permit Private Cloud Compute as a
+          fallback if local processing is unavailable or encounters an
+          infrastructure failure. Safety refusals are not retried in the cloud.
 
       -h, --help
           Print this help and exit.
@@ -126,11 +136,13 @@ public enum CLIText {
     EXAMPLES
       image-ai "Photos/family picnic.jpg"
       image-ai --filename screenshot.WEBP
-      image-ai --allow-cloud photo.heic
+      image-ai --use-cloud photo.heic
+      image-ai --allow-cloud photo.png
 
     PRIVACY
       Processing is on-device by default. No cloud request is permitted unless
-      --allow-cloud is specified.
+      --use-cloud or --allow-cloud is specified. If both are specified,
+      --use-cloud takes precedence.
     """
   }
 }

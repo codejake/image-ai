@@ -42,7 +42,25 @@ struct ImageDescriber {
     Unable to describe image reliably
     """
 
-  func describe(_ loadedImage: LoadedImage, allowCloud: Bool) async throws -> DescriptionResult {
+  func describe(
+    _ loadedImage: LoadedImage,
+    useCloud: Bool,
+    allowCloud: Bool
+  ) async throws -> DescriptionResult {
+    if useCloud {
+      return try await describeUsingCloud(loadedImage)
+    }
+
+    return try await describeOnDevice(
+      loadedImage,
+      allowCloudFallback: allowCloud
+    )
+  }
+
+  private func describeOnDevice(
+    _ loadedImage: LoadedImage,
+    allowCloudFallback: Bool
+  ) async throws -> DescriptionResult {
     let localModel = SystemLanguageModel.default
 
     switch localModel.availability {
@@ -57,21 +75,21 @@ struct ImageDescriber {
         if error is OutputValidationError {
           throw error
         }
-        guard allowCloud && shouldFallBackToCloud(after: error) else {
-          throw DescriptionError.generationFailed(
-            Self.userFacingMessage(for: error)
-          )
+        if allowCloudFallback && shouldFallBackToCloud(after: error) {
+          return try await describeUsingCloud(loadedImage)
         }
-      }
-    case .unavailable(let reason):
-      guard allowCloud else {
-        throw DescriptionError.onDeviceUnavailable(
-          Self.message(for: reason)
+        throw DescriptionError.generationFailed(
+          Self.userFacingMessage(for: error)
         )
       }
+    case .unavailable(let reason):
+      if allowCloudFallback {
+        return try await describeUsingCloud(loadedImage)
+      }
+      throw DescriptionError.onDeviceUnavailable(
+        Self.message(for: reason)
+      )
     }
-
-    return try await describeUsingCloud(loadedImage)
   }
 
   private func describeUsingCloud(_ loadedImage: LoadedImage) async throws -> DescriptionResult {

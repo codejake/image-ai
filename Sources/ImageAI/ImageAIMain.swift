@@ -52,11 +52,16 @@ struct ImageAIMain {
     let loadedImage = try ImageLoader().load(path: options.imagePath)
     let result = try await ImageDescriber().describe(
       loadedImage,
+      useCloud: options.useCloud,
       allowCloud: options.allowCloud
     )
 
     if result.source == .privateCloudCompute {
-      writeError("using Private Cloud Compute (--allow-cloud was specified)")
+      if options.useCloud {
+        writeError("using Private Cloud Compute (--use-cloud was specified)")
+      } else {
+        writeError("using Private Cloud Compute fallback (--allow-cloud was specified)")
+      }
     }
     if options.filenameOutput {
       print(
